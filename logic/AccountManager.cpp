@@ -48,14 +48,29 @@ bool AccountManager::updateAccount(int id, const QString& name, const QString& t
 }
 
 bool AccountManager::deleteAccount(int id) {
-    QSqlQuery q(DatabaseManager::instance().database());
-    q.prepare("DELETE FROM accounts WHERE id = :id");
-    q.bindValue(":id", id);
+    auto db = DatabaseManager::instance().database();
+    db.transaction();
 
+    QSqlQuery q(db);
+
+    // transfers 에는 ON DELETE CASCADE 가 없으므로 먼저 수동 삭제
+    q.prepare("DELETE FROM transfers WHERE from_account_id = :id OR to_account_id = :id");
+    q.bindValue(":id", id);
     if (!q.exec()) {
-        qWarning() << "deleteAccount failed:" << q.lastError().text();
+        qWarning() << "deleteAccount (transfers) failed:" << q.lastError().text();
+        db.rollback();
         return false;
     }
+
+    q.prepare("DELETE FROM accounts WHERE id = :id");
+    q.bindValue(":id", id);
+    if (!q.exec()) {
+        qWarning() << "deleteAccount (accounts) failed:" << q.lastError().text();
+        db.rollback();
+        return false;
+    }
+
+    db.commit();
     emit accountsChanged();
     return true;
 }

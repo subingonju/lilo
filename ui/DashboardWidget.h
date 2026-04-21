@@ -33,4 +33,9 @@ private:
 
     QWidget*     m_budgetContainer;
     QVBoxLayout* m_budgetLayout;
+
+    QLabel*      m_pieCenterTopLbl = nullptr;
+    QLabel*      m_pieCenterBotLbl = nullptr;
+    QWidget*     m_pieLegendWidget = nullptr;
+    QVBoxLayout* m_pieLegendLayout = nullptr;
 };

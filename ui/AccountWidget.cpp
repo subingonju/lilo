@@ -19,6 +19,7 @@
 #include <QLineEdit>
 #include <QComboBox>
 #include <QDoubleSpinBox>
+#include <QRegularExpressionValidator>
 #include <QEvent>
 #include <QMouseEvent>
 
@@ -107,18 +108,18 @@ void AccountWidget::setupUi() {
 
     // 뷰 전환 토글
     auto* toggleFr = new QFrame(this);
-    toggleFr->setStyleSheet("QFrame{background:#F3F4F6;border-radius:8px;border:none;}");
-    toggleFr->setFixedHeight(34);
+    toggleFr->setStyleSheet("QFrame{background:#F3F4F6;border-radius:10px;border:none;}");
+    toggleFr->setFixedHeight(42);
     auto* tgl = new QHBoxLayout(toggleFr);
-    tgl->setContentsMargins(3, 3, 3, 3);
+    tgl->setContentsMargins(4, 4, 4, 4);
     tgl->setSpacing(2);
 
     m_cardModeBtn = new QPushButton("⊞", toggleFr);
     m_listModeBtn = new QPushButton("≡", toggleFr);
-    m_cardModeBtn->setFixedHeight(28);
-    m_listModeBtn->setFixedHeight(28);
-    m_cardModeBtn->setFont(QFont("Segoe UI", 11));
-    m_listModeBtn->setFont(QFont("Segoe UI", 11));
+    m_cardModeBtn->setFixedSize(34, 34);
+    m_listModeBtn->setFixedSize(34, 34);
+    m_cardModeBtn->setFont(QFont("Segoe UI", 15));
+    m_listModeBtn->setFont(QFont("Segoe UI", 15));
     tgl->addWidget(m_cardModeBtn);
     tgl->addWidget(m_listModeBtn);
 
@@ -228,13 +229,13 @@ void AccountWidget::buildCards() {
         hdr->setSpacing(10);
 
         auto* badge = new QLabel(typeLabel(a.type), card);
-        badge->setFixedHeight(24);
+        badge->setFixedHeight(22);
         badge->setAlignment(Qt::AlignCenter);
         badge->setStyleSheet(QString(
-            "color:%1;background:transparent;"
-            "border:1.5px solid %1;border-radius:6px;"
-            "font-size:8.5pt;font-weight:600;padding:0 8px;"
-        ).arg(tc.name()));
+            "color:%1;background:%2;"
+            "border:none;border-radius:4px;"
+            "font-size:8pt;font-weight:700;padding:0 8px;"
+        ).arg(tc.name(), typeLightColor(a.type).name()));
 
         auto* nameLbl = new QLabel(a.name, card);
         nameLbl->setFont(QFont("맑은 고딕", 13, QFont::Bold));
@@ -278,29 +279,28 @@ void AccountWidget::buildCards() {
         vl->addWidget(divLine);
         vl->addSpacing(10);
 
-        // 액션 버튼 (ghost 스타일)
+        // 액션 버튼
         auto* act = new QHBoxLayout;
         act->setSpacing(7);
 
-        auto mkGhost = [&](const QString& text, const QString& borderFg,
-                           const QString& hoverBg) {
+        auto mkBtn = [&](const QString& text, const QString& bg,
+                         const QString& fg, const QString& border) {
             auto* b = new QPushButton(text, card);
-            b->setFixedHeight(32);
+            b->setFixedHeight(34);
             b->setCursor(Qt::PointingHandCursor);
             b->setStyleSheet(QString(
-                "QPushButton{background:transparent;color:%1;"
-                "border:1.5px solid %1;border-radius:8px;"
-                "font-size:9pt;font-weight:600;padding:0 4px;}"
-                "QPushButton:hover{background:%2;}"
-            ).arg(borderFg, hoverBg));
+                "QPushButton{background:%1;color:%2;border:1px solid %3;border-radius:8px;"
+                "font-size:9pt;font-weight:700;padding:0 6px;}"
+                "QPushButton:hover{background:%2;color:#FFFFFF;border-color:%2;}"
+            ).arg(bg, fg, border));
             return b;
         };
 
         const int aid = a.id;
-        auto* depBtn  = mkGhost("입금", "#059669", "#ECFDF5");
-        auto* withBtn = mkGhost("출금", "#DC2626", "#FEF2F2");
-        auto* trfBtn  = mkGhost("이체", "#1D4ED8", "#EFF6FF");
-        auto* moreBtn = mkGhost("···",  "#9CA3AF", "#F3F4F6");
+        auto* depBtn  = mkBtn("입금", "#ECFDF5", "#059669", "#A7F3D0");
+        auto* withBtn = mkBtn("출금", "#FEF2F2", "#DC2626", "#FECACA");
+        auto* trfBtn  = mkBtn("이체", "#EFF6FF", "#1D4ED8", "#BFDBFE");
+        auto* moreBtn = mkBtn("···",  "#F3F4F6", "#6B7280", "#E5E7EB");
         moreBtn->setFixedWidth(40);
 
         connect(depBtn,  &QPushButton::clicked, this, [this, aid]() { doDeposit(aid);  });
@@ -370,7 +370,7 @@ void AccountWidget::buildList() {
 
         auto* hl = new QHBoxLayout(row);
         hl->setContentsMargins(16, 0, 14, 0);
-        hl->setSpacing(14);
+        hl->setSpacing(10);
 
         // 유형 아이콘
         auto* iconLbl = new QLabel(typeLabel(a.type).left(2), row);
@@ -406,7 +406,7 @@ void AccountWidget::buildList() {
         balLbl->setFont(QFont("맑은 고딕", 13, QFont::Bold));
         balLbl->setStyleSheet(QString(
             "color:%1;background:transparent;letter-spacing:-0.5px;"
-        ).arg(a.balance >= 0 ? "#1D4ED8" : "#DC2626"));
+        ).arg(a.balance >= 0 ? "#111827" : "#DC2626"));
         balLbl->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
         balLbl->setMinimumWidth(140);
         hl->addWidget(balLbl);
@@ -414,24 +414,25 @@ void AccountWidget::buildList() {
         hl->addSpacing(6);
 
         // 액션 버튼
-        auto mkRowBtn = [&](const QString& text, const QString& bg, const QString& fg) {
+        auto mkRowBtn = [&](const QString& text, const QString& bg,
+                            const QString& fg, const QString& border) {
             auto* b = new QPushButton(text, row);
             b->setMinimumWidth(54);
             b->setFixedHeight(34);
             b->setCursor(Qt::PointingHandCursor);
             b->setStyleSheet(QString(
-                "QPushButton{background:%1;color:%2;border:none;border-radius:8px;"
+                "QPushButton{background:%1;color:%2;border:1px solid %3;border-radius:8px;"
                 "font-size:9pt;font-weight:700;padding:0 6px;}"
-                "QPushButton:hover{background:%3;}"
-            ).arg(bg, fg, QColor(bg).darker(108).name()));
+                "QPushButton:hover{background:%2;color:#FFFFFF;border-color:%2;}"
+            ).arg(bg, fg, border));
             return b;
         };
 
         const int aid = a.id;
-        auto* depBtn  = mkRowBtn("입금",  "#ECFDF5", "#059669");
-        auto* withBtn = mkRowBtn("출금",  "#FEF2F2", "#DC2626");
-        auto* trfBtn  = mkRowBtn("이체",  "#EFF6FF", "#1D4ED8");
-        auto* moreBtn = mkRowBtn("···",   "#F3F4F6", "#6B7280");
+        auto* depBtn  = mkRowBtn("입금",  "#ECFDF5", "#059669", "#A7F3D0");
+        auto* withBtn = mkRowBtn("출금",  "#FEF2F2", "#DC2626", "#FECACA");
+        auto* trfBtn  = mkRowBtn("이체",  "#EFF6FF", "#1D4ED8", "#BFDBFE");
+        auto* moreBtn = mkRowBtn("···",   "#F3F4F6", "#6B7280", "#E5E7EB");
         moreBtn->setMinimumWidth(36);
 
         connect(depBtn,  &QPushButton::clicked, this, [this, aid]() { doDeposit(aid);  });
@@ -575,19 +576,16 @@ void AccountWidget::showAmountDialog(int accountId, bool isDeposit) {
     form->setSpacing(14);
     form->setContentsMargins(24, 24, 24, 24);
 
-    auto* amtSpin = new QDoubleSpinBox(dlg);
-    amtSpin->setRange(1, 1e12);
-    amtSpin->setDecimals(0);
-    amtSpin->setSingleStep(10000);
-    amtSpin->setGroupSeparatorShown(true);
-    amtSpin->setPrefix("₩ ");
+    auto* amtEdit = new QLineEdit(dlg);
+    amtEdit->setPlaceholderText("금액 입력 (숫자만)");
+    amtEdit->setValidator(new QRegularExpressionValidator(QRegularExpression(R"(\d{1,15})"), dlg));
 
     auto* catBox = new QComboBox(dlg);
     catBox->addItems({"급여", "식비", "교통", "쇼핑", "의료", "여가", "이체", "기타"});
     auto* descEdit = new QLineEdit(dlg);
     descEdit->setPlaceholderText("거래 설명 (선택사항)");
 
-    form->addRow("금액:",       amtSpin);
+    form->addRow("금액:",       amtEdit);
     form->addRow("카테고리:",   catBox);
     form->addRow("설명:",       descEdit);
 
@@ -602,7 +600,11 @@ void AccountWidget::showAmountDialog(int accountId, bool isDeposit) {
 
     connect(can, &QPushButton::clicked, dlg, &QDialog::reject);
     connect(ok,  &QPushButton::clicked, dlg, [=]() {
-        const double amt = amtSpin->value();
+        const double amt = amtEdit->text().toDouble();
+        if (amt <= 0) {
+            QMessageBox::warning(dlg, "오류", "금액을 입력해 주세요.");
+            return;
+        }
         const bool ok2   = isDeposit
             ? TransactionManager::instance().deposit( accountId, amt, catBox->currentText(), descEdit->text())
             : TransactionManager::instance().withdraw(accountId, amt, catBox->currentText(), descEdit->text());

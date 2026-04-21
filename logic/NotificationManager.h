@@ -1,14 +1,16 @@
 #pragma once
 #include <QObject>
 #include <QSystemTrayIcon>
-#include <QIcon>
+#include <QWidget>
+#include <QList>
+#include <QColor>
 
 class NotificationManager : public QObject {
     Q_OBJECT
 public:
     static NotificationManager& instance();
 
-    void initialize(QObject* parent = nullptr);
+    void initialize(QWidget* parent = nullptr);
     void checkBudgets(int userId);
 
 private:
@@ -16,7 +18,11 @@ private:
     NotificationManager(const NotificationManager&) = delete;
     NotificationManager& operator=(const NotificationManager&) = delete;
 
-    void notify(const QString& title, const QString& message);
+    void notify(const QString& title, const QString& message, const QColor& accentColor);
+    void positionToast(QWidget* toast);
+    void repositionToasts();
 
-    QSystemTrayIcon* m_tray = nullptr;
+    QSystemTrayIcon*  m_tray        = nullptr;
+    QWidget*          m_mainWindow  = nullptr;
+    QList<QWidget*>   m_activeToasts;
 };

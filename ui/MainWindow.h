@@ -18,7 +18,6 @@ public:
     explicit MainWindow(int userId, const QString& username, QWidget* parent = nullptr);
 
 private slots:
-    void onToggleDarkMode(bool enabled);
     void onLogout();
     void setActivePage(int index);
     void fetchExchangeRates();
@@ -27,7 +26,6 @@ private:
     void setupMenuBar();
     void setupStatusBar();
     void setupSidebar();
-    void applyTheme(bool dark);
 
     int     m_userId;
     QString m_username;
@@ -50,5 +48,4 @@ private:
     QTimer* m_rateTimer = nullptr;
 
     QLabel* m_statusUser;
-    bool    m_darkMode = false;
 };

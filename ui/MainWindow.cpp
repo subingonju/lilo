@@ -3,7 +3,6 @@
 #include "AccountWidget.h"
 #include "TransactionWidget.h"
 #include "BudgetWidget.h"
-#include "SettingsDialog.h"
 #include "AuthManager.h"
 #include "NotificationManager.h"
 #include "AccountModel.h"
@@ -47,11 +46,21 @@ MainWindow::MainWindow(int userId, const QString& username, QWidget* parent)
     m_rateTimer->start();
     fetchExchangeRates();
 
-    QString saved = SettingsDialog::loadSavedQss();
-    if (!saved.isEmpty())
-        qApp->setStyleSheet(saved);
-    else
-        applyTheme(false);
+    qApp->setStyleSheet(
+        "QWidget { background:#FFFFFF; color:#111827; }"
+        "QMainWindow { background:#F8FAFC; }"
+        "QMenuBar { background:#FFFFFF; color:#111827; border-bottom:1px solid #E5E7EB; }"
+        "QMenuBar::item:selected { background:#F3F4F6; }"
+        "QMenu { background:#FFFFFF; border:1px solid #E5E7EB; }"
+        "QMenu::item:selected { background:#EFF6FF; color:#1D4ED8; }"
+        "QScrollBar:vertical { background:#F3F4F6; width:8px; border-radius:4px; }"
+        "QScrollBar::handle:vertical { background:#D1D5DB; border-radius:4px; }"
+        "QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height:0; }"
+        "QScrollBar:horizontal { background:#F3F4F6; height:8px; border-radius:4px; }"
+        "QScrollBar::handle:horizontal { background:#D1D5DB; border-radius:4px; }"
+        "QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width:0; }"
+        "QStatusBar { background:#FFFFFF; border-top:1px solid #E5E7EB; color:#6B7280; }"
+    );
 }
 
 void MainWindow::setupSidebar() {
@@ -136,12 +145,12 @@ void MainWindow::setupSidebar() {
     auto* rateTitleLbl = new QLabel("실시간 환율", sidebar);
     rateTitleLbl->setStyleSheet(
         "color: #CBD5E1; font-size: 7pt; font-weight: 700; "
-        "padding: 2px 4px 3px 4px;");
+        "padding: 2px 4px 3px 4px; background: transparent;");
     sideLayout->addWidget(rateTitleLbl);
 
     auto* rateGrid   = new QWidget(sidebar);
     rateGrid->setStyleSheet(
-        "background: rgba(255,255,255,0.05); border-radius: 6px; padding: 4px;");
+        "background: rgba(255,255,255,0.06); border-radius: 6px; padding: 4px;");
     auto* rateGridLay = new QGridLayout(rateGrid);
     rateGridLay->setContentsMargins(2, 0, 2, 0);
     rateGridLay->setHorizontalSpacing(8);
@@ -151,10 +160,10 @@ void MainWindow::setupSidebar() {
                           const QString& tooltip) {
         auto* codeLbl = new QLabel(code, rateGrid);
         codeLbl->setStyleSheet(
-            "color: #94A3B8; font-size: 7pt; font-weight: 700;");
+            "color: #94A3B8; font-size: 7pt; font-weight: 700; background: transparent;");
         valueLabel = new QLabel("—", rateGrid);
         valueLabel->setStyleSheet(
-            "color: #FACC15; font-size: 7.5pt; font-weight: 600;");
+            "color: #FACC15; font-size: 7.5pt; font-weight: 600; background: transparent;");
         valueLabel->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
         valueLabel->setToolTip(tooltip);
         rateGridLay->addWidget(codeLbl,    row, 0);
@@ -169,7 +178,7 @@ void MainWindow::setupSidebar() {
 
     m_sideRateTimeLbl = new QLabel("", sidebar);
     m_sideRateTimeLbl->setStyleSheet(
-        "color: #94A3B8; font-size: 6.5pt; padding: 2px 4px 6px 4px;");
+        "color: #94A3B8; font-size: 6.5pt; padding: 2px 4px 6px 4px; background: transparent;");
     sideLayout->addWidget(m_sideRateTimeLbl);
 
     // ── 콘텐츠 영역 ──────────────────────────────────────
@@ -262,19 +271,7 @@ void MainWindow::setupMenuBar() {
     auto* exitAct = fileMenu->addAction("종료");
     connect(exitAct, &QAction::triggered, qApp, &QApplication::quit);
 
-    auto* viewMenu = menuBar()->addMenu("보기(&V)");
-    auto* darkAct  = viewMenu->addAction("다크 모드");
-    darkAct->setCheckable(true);
-    connect(darkAct, &QAction::toggled, this, &MainWindow::onToggleDarkMode);
-
-    viewMenu->addSeparator();
-    auto* themeAct = viewMenu->addAction("테마 및 스타일 편집기...");
-    connect(themeAct, &QAction::triggered, this, [this]() {
-        SettingsDialog dlg(this);
-        dlg.exec();
-    });
-
-    // 새로 고침 — 보기와 도움말 사이
+    // 새로 고침 — 파일과 도움말 사이
     auto* refreshAct = new QAction("새로 고침(&R)", this);
     refreshAct->setShortcut(Qt::Key_F5);
     connect(refreshAct, &QAction::triggered, this, [this]() {
@@ -299,18 +296,6 @@ void MainWindow::setupStatusBar() {
     statusBar()->showMessage("준비");
 }
 
-void MainWindow::onToggleDarkMode(bool enabled) {
-    m_darkMode = enabled;
-    applyTheme(enabled);
-}
-
-void MainWindow::applyTheme(bool dark) {
-    QFile f(dark ? ":/styles/dark.qss" : ":/styles/light.qss");
-    if (f.open(QFile::ReadOnly))
-        qApp->setStyleSheet(QString::fromUtf8(f.readAll()));
-    else
-        qApp->setStyleSheet("");
-}
 
 void MainWindow::onLogout() {
     AuthManager::instance().logout();

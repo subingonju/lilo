@@ -10,9 +10,8 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QTimer>
-#include <QScreen>
-#include <QGuiApplication>
 #include <QPropertyAnimation>
+#include <QGraphicsOpacityEffect>
 
 NotificationManager& NotificationManager::instance() {
     static NotificationManager inst;
@@ -83,22 +82,16 @@ void NotificationManager::checkBudgets(int userId) {
 
 void NotificationManager::notify(const QString& title, const QString& message,
                                   const QColor& accentColor) {
-    if (!m_mainWindow) {
-        if (m_tray && QSystemTrayIcon::isSystemTrayAvailable())
-            m_tray->showMessage(title, message, QSystemTrayIcon::Warning, 5000);
-        return;
-    }
+    if (!m_mainWindow) return;
 
-    auto* toast = new QFrame(nullptr);
-    toast->setWindowFlags(Qt::Tool | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint);
-    toast->setAttribute(Qt::WA_TranslucentBackground);
+    // 앱 내부 자식 위젯으로 생성
+    auto* toast = new QFrame(m_mainWindow);
     toast->setAttribute(Qt::WA_StyledBackground, true);
     toast->setAttribute(Qt::WA_DeleteOnClose);
-    toast->setAttribute(Qt::WA_ShowWithoutActivating);
     toast->setFixedWidth(320);
     toast->setStyleSheet(QString(
         "QFrame {"
-        "  background-color: rgba(15, 23, 42, 235);"
+        "  background-color: rgba(15, 23, 42, 230);"
         "  border: none;"
         "  border-left: 5px solid %1;"
         "  border-radius: 12px;"
@@ -109,7 +102,6 @@ void NotificationManager::notify(const QString& title, const QString& message,
     hl->setContentsMargins(14, 14, 14, 14);
     hl->setSpacing(12);
 
-    // 상태별 아이콘 배지 (색상 원형 + "!")
     QString iconChar = title.contains("초과") ? "X" : "!";
     auto* iconLbl = new QLabel(iconChar, toast);
     iconLbl->setAlignment(Qt::AlignCenter);
@@ -127,7 +119,7 @@ void NotificationManager::notify(const QString& title, const QString& message,
     auto* msgLbl = new QLabel(message, toast);
     msgLbl->setStyleSheet("color:#94A3B8; font-size:11px;");
     msgLbl->setWordWrap(true);
-    msgLbl->setFixedWidth(248);
+    msgLbl->setFixedWidth(240);
 
     contentLay->addWidget(titleLbl);
     contentLay->addWidget(msgLbl);
@@ -136,16 +128,19 @@ void NotificationManager::notify(const QString& title, const QString& message,
     hl->addLayout(contentLay);
 
     toast->adjustSize();
-
     positionToast(toast);
     m_activeToasts.append(toast);
+    toast->raise();
     toast->show();
 
-    // 3초 표시 후 500ms 페이드아웃
+    // 3초 후 페이드아웃 (자식 위젯은 QGraphicsOpacityEffect 사용)
     auto* timer = new QTimer(toast);
     timer->setSingleShot(true);
     connect(timer, &QTimer::timeout, this, [this, toast]() {
-        auto* anim = new QPropertyAnimation(toast, "windowOpacity", toast);
+        auto* effect = new QGraphicsOpacityEffect(toast);
+        toast->setGraphicsEffect(effect);
+
+        auto* anim = new QPropertyAnimation(effect, "opacity", toast);
         anim->setDuration(500);
         anim->setStartValue(1.0);
         anim->setEndValue(0.0);
@@ -160,43 +155,30 @@ void NotificationManager::notify(const QString& title, const QString& message,
 }
 
 void NotificationManager::positionToast(QWidget* toast) {
+    if (!m_mainWindow) return;
     const int margin   = 16;
     const int stackGap = 8;
 
-    QRect winRect = m_mainWindow->geometry();
-
-    QScreen* screen = QGuiApplication::primaryScreen();
-    QRect avail = screen ? screen->availableGeometry() : winRect;
-
-    // 기존 토스트 높이만큼 위로 쌓기
     int yOffset = 0;
     for (QWidget* t : m_activeToasts)
         yOffset += t->height() + stackGap;
 
-    int x = winRect.right() - toast->width() - margin;
-    int y = winRect.bottom() - toast->height() - margin - yOffset;
-
-    x = qBound(avail.left(), x, avail.right()  - toast->width());
-    y = qBound(avail.top(),  y, avail.bottom() - toast->height());
+    int x = m_mainWindow->width()  - toast->width()  - margin;
+    int y = m_mainWindow->height() - toast->height() - margin - yOffset;
 
     toast->move(x, y);
 }
 
 void NotificationManager::repositionToasts() {
+    if (!m_mainWindow) return;
     const int margin   = 16;
     const int stackGap = 8;
-
-    QScreen* screen = QGuiApplication::primaryScreen();
-    QRect avail = screen ? screen->availableGeometry() : QRect(0, 0, 1920, 1080);
-    QRect winRect = m_mainWindow ? m_mainWindow->geometry() : avail;
 
     int yOffset = 0;
     for (QWidget* t : m_activeToasts) {
         if (!t) continue;
-        int x = winRect.right() - t->width() - margin;
-        int y = winRect.bottom() - t->height() - margin - yOffset;
-        x = qBound(avail.left(), x, avail.right()  - t->width());
-        y = qBound(avail.top(),  y, avail.bottom() - t->height());
+        int x = m_mainWindow->width()  - t->width()  - margin;
+        int y = m_mainWindow->height() - t->height() - margin - yOffset;
         t->move(x, y);
         yOffset += t->height() + stackGap;
     }

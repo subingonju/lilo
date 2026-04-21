@@ -10,10 +10,11 @@
 #include <QLineEdit>
 #include <QPushButton>
 #include <QLabel>
+#include <QPixmap>
 #include <QApplication>
 
 LoginWindow::LoginWindow(QWidget* parent) : QDialog(parent) {
-    setWindowTitle("계정 관리자");
+    setWindowTitle("VEDA");
     setMinimumWidth(420);
     setModal(true);
     setupUi();
@@ -28,23 +29,20 @@ void LoginWindow::setupUi() {
 
     // ── 헤더 배너 ───────────────────────────────────────────
     auto* banner = new QFrame(this);
-    banner->setFixedHeight(120);
+    banner->setFixedHeight(130);
     banner->setStyleSheet("background: #003585; border-radius: 0;");
     auto* bannerLayout = new QVBoxLayout(banner);
     bannerLayout->setAlignment(Qt::AlignCenter);
 
-    auto* logoLbl = new QLabel("🏦", banner);
+    auto* logoLbl = new QLabel(banner);
+    logoLbl->setFixedHeight(100);
     logoLbl->setAlignment(Qt::AlignCenter);
-    logoLbl->setStyleSheet("font-size: 32pt; background: transparent;");
-
-    auto* bankName = new QLabel("계정 관리자", banner);
-    bankName->setAlignment(Qt::AlignCenter);
-    bankName->setStyleSheet(
-        "color: white; font-size: 16pt; font-weight: 700; background: transparent; "
-        "font-family: '맑은 고딕';");
+    logoLbl->setStyleSheet("background: transparent;");
+    QPixmap logoPix(":/images/logo.png");
+    if (!logoPix.isNull())
+        logoLbl->setPixmap(logoPix.scaledToWidth(200, Qt::SmoothTransformation));
 
     bannerLayout->addWidget(logoLbl);
-    bannerLayout->addWidget(bankName);
     root->addWidget(banner);
 
     // ── 로그인 카드 ──────────────────────────────────────────

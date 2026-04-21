@@ -6,6 +6,7 @@
 #include <QPushButton>
 #include <QMessageBox>
 #include <QLabel>
+#include <QRegularExpressionValidator>
 
 TransferDialog::TransferDialog(int userId, QWidget* parent)
     : QDialog(parent), m_userId(userId)
@@ -27,17 +28,17 @@ TransferDialog::TransferDialog(int userId, QWidget* parent)
         m_toCombo->addItem(label, a.id);
     }
 
-    m_amtSpin = new QDoubleSpinBox(this);
-    m_amtSpin->setRange(0.01, 1e12);
-    m_amtSpin->setDecimals(2);
-    m_amtSpin->setSingleStep(1000);
+    m_amtEdit = new QLineEdit(this);
+    m_amtEdit->setPlaceholderText("금액 입력 (숫자만, 최소 1원)");
+    m_amtEdit->setValidator(
+        new QRegularExpressionValidator(QRegularExpression(R"([1-9]\d{0,14})"), this));
 
     m_memoEdit = new QLineEdit(this);
     m_memoEdit->setPlaceholderText("메모 (선택사항)...");
 
     form->addRow("출금 계좌:", m_fromCombo);
     form->addRow("입금 계좌:", m_toCombo);
-    form->addRow("금액:",      m_amtSpin);
+    form->addRow("금액:",      m_amtEdit);
     form->addRow("메모:",      m_memoEdit);
 
     auto* btns = new QHBoxLayout;
@@ -64,8 +65,12 @@ void TransferDialog::setFromAccount(int accountId) {
 void TransferDialog::onTransfer() {
     int fromId = m_fromCombo->currentData().toInt();
     int toId   = m_toCombo->currentData().toInt();
-    double amt = m_amtSpin->value();
+    const double amt = m_amtEdit->text().toLongLong();
 
+    if (amt < 1) {
+        QMessageBox::warning(this, "오류", "금액을 입력해 주세요. (최소 1원)");
+        return;
+    }
     if (fromId == toId) {
         QMessageBox::warning(this, "오류", "출금 계좌와 입금 계좌는 달라야 합니다.");
         return;

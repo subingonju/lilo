@@ -4,7 +4,7 @@
 #include <QComboBox>
 #include <QLineEdit>
 #include <QDateEdit>
-#include <QDoubleSpinBox>
+#include <QSpinBox>
 #include "TransactionModel.h"
 #include "AccountModel.h"
 
@@ -35,7 +35,7 @@ private:
     QLineEdit*      m_keywordEdit;
     QDateEdit*      m_startDate;
     QDateEdit*      m_endDate;
-    QDoubleSpinBox* m_minAmt;
-    QDoubleSpinBox* m_maxAmt;
+    QSpinBox* m_minAmt;
+    QSpinBox* m_maxAmt;
     QComboBox*      m_categoryFilter;
 };

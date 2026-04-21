@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(./build/**)",
+      "Read(./release/**)",
+      "Read(./debug/**)",
+      "Read(./**/*.o)",
+      "Read(./**/*.obj)",
+      "Read(./**/*.a)",
+      "Read(./**/*.so)",
+      "Read(./**/*.dll)",
+      "Read(./**/*.exe)",
+      "Read(./**/moc_*.cpp)",
+      "Read(./**/*.moc)",
+      "Read(./**/ui_*.h)",
+      "Read(./**/qrc_*.cpp)",
+      "Read(./**/*.qm)",
+      "Read(./**/*.pro.user)",
+      "Read(./CMakeFiles/**)",
+      "Read(./CMakeCache.txt)",
+      "Read(./**/*.log)",
+      "Read(./**/*.tmp)",
+      "Read(./**/*.db)",
+      "Read(./**/*.sqlite)"
+    ]
+  }
+}

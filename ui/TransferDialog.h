@@ -1,7 +1,6 @@
 #pragma once
 #include <QDialog>
 #include <QComboBox>
-#include <QDoubleSpinBox>
 #include <QLineEdit>
 
 class TransferDialog : public QDialog {
@@ -15,8 +14,8 @@ private slots:
 
 private:
     int           m_userId;
-    QComboBox*    m_fromCombo;
-    QComboBox*    m_toCombo;
-    QDoubleSpinBox* m_amtSpin;
-    QLineEdit*    m_memoEdit;
+    QComboBox*  m_fromCombo;
+    QComboBox*  m_toCombo;
+    QLineEdit*  m_amtEdit;
+    QLineEdit*  m_memoEdit;
 };

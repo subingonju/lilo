@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C \"c:/veda_Qt_study/project/lilo\" status)",
+      "Bash(git -C \"c:/veda_Qt_study/project/lilo\" log --oneline -3)"
+    ]
+  }
+}

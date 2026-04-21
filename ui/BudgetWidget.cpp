@@ -156,10 +156,26 @@ void BudgetWidget::setupUi() {
     );
     root->addWidget(m_table);
 
+    auto mkBtn = [this](const QString& text, const QString& bg,
+                        const QString& fg, const QString& border) {
+        auto* b = new QPushButton(text, this);
+        b->setFixedHeight(34);
+        b->setMinimumWidth(80);
+        b->setCursor(Qt::PointingHandCursor);
+        b->setStyleSheet(QString(
+            "QPushButton{background:%1;color:%2;border:1px solid %3;border-radius:8px;"
+            "font-size:9pt;font-weight:700;padding:0 14px;}"
+            "QPushButton:hover{background:%2;color:#FFFFFF;border-color:%2;}"
+        ).arg(bg, fg, border));
+        return b;
+    };
+
     auto* btns   = new QHBoxLayout;
-    auto* addBtn = new QPushButton("예산 추가", this);
-    m_editBtn    = new QPushButton("수정",      this);
-    m_deleteBtn  = new QPushButton("삭제",      this);
+    btns->setContentsMargins(0, 4, 0, 0);
+    btns->setSpacing(8);
+    auto* addBtn = mkBtn("예산 추가", "#ECFDF5", "#059669", "#A7F3D0");
+    m_editBtn    = mkBtn("수정",      "#EFF6FF", "#1D4ED8", "#BFDBFE");
+    m_deleteBtn  = mkBtn("삭제",      "#FEF2F2", "#DC2626", "#FECACA");
     btns->addWidget(addBtn);
     btns->addWidget(m_editBtn);
     btns->addWidget(m_deleteBtn);
@@ -327,7 +343,10 @@ void BudgetWidget::loadBudgets() {
     if (m_totalSpentLabel)
         m_totalSpentLabel->setText(AccountModel::formatKRW(totalSpent));
     if (m_remainingLabel) {
-        m_remainingLabel->setText(AccountModel::formatKRW(qAbs(totalRemaining)));
+        QString remText = (totalRemaining >= 0)
+            ? AccountModel::formatKRW(totalRemaining)
+            : "-" + AccountModel::formatKRW(-totalRemaining);
+        m_remainingLabel->setText(remText);
         m_remainingLabel->setStyleSheet(QString(
             "color:%1; font-size:11pt; font-weight:700; background:transparent;")
             .arg(totalRemaining >= 0 ? "#059669" : "#DC2626"));

@@ -16,7 +16,7 @@
 #include <QDate>
 #include <QDialog>
 #include <QFormLayout>
-#include <QDoubleSpinBox>
+#include <QSpinBox>
 #include <QLineEdit>
 #include <QCalendarWidget>
 #include <QScreen>
@@ -182,14 +182,39 @@ TransactionWidget::TransactionWidget(int userId, QWidget* parent)
 
 void TransactionWidget::setupUi() {
     auto* root = new QVBoxLayout(this);
+    root->setContentsMargins(12, 12, 12, 10);
+    root->setSpacing(8);
 
     auto* filterBox = new QGroupBox("검색 / 필터", this);
     auto* grid = new QGridLayout(filterBox);
+    grid->setContentsMargins(10, 14, 10, 10);
+    grid->setHorizontalSpacing(10);
+    grid->setVerticalSpacing(8);
+
+    static const QString kComboStyle =
+        "QComboBox {"
+        "  background:#FFFFFF; color:#111827;"
+        "  border:1px solid #D1D5DB; border-radius:6px;"
+        "  padding:0 10px; min-height:32px;"
+        "}"
+        "QComboBox:hover { border-color:#9CA3AF; }"
+        "QComboBox:focus { border:1.5px solid #2563EB; }"
+        "QComboBox::drop-down { border:none; width:24px; }"
+        "QComboBox QAbstractItemView {"
+        "  background:#FFFFFF; color:#111827;"
+        "  border:1px solid #E5E7EB; border-radius:6px;"
+        "  selection-background-color:#EFF6FF;"
+        "  selection-color:#2563EB;"
+        "  outline:none; padding:4px;"
+        "}"
+        "QComboBox QAbstractItemView::item { padding:6px 12px; border-radius:4px; }";
 
     m_accountCombo   = new QComboBox(this);
+    m_accountCombo->setStyleSheet(kComboStyle);
     m_keywordEdit    = new QLineEdit(this);
     m_keywordEdit->setPlaceholderText("키워드...");
     m_categoryFilter = new QComboBox(this);
+    m_categoryFilter->setStyleSheet(kComboStyle);
     m_categoryFilter->addItems({"전체", "급여", "식비", "교통", "쇼핑", "의료", "여가", "이체", "기타"});
 
     m_startDate = new QDateEdit(QDate::currentDate().addMonths(-1), this);
@@ -201,16 +226,26 @@ void TransactionWidget::setupUi() {
     m_startDate->setButtonSymbols(QAbstractSpinBox::NoButtons);
     m_endDate->setButtonSymbols(QAbstractSpinBox::NoButtons);
 
-    m_minAmt = new QDoubleSpinBox(this);
-    m_maxAmt = new QDoubleSpinBox(this);
-    m_minAmt->setRange(0, 1e12); m_minAmt->setSpecialValueText("전체");
-    m_maxAmt->setRange(0, 1e12); m_maxAmt->setSpecialValueText("전체");
+    m_minAmt = new QSpinBox(this);
+    m_maxAmt = new QSpinBox(this);
+    m_minAmt->setRange(0, 2'000'000'000); m_minAmt->setSpecialValueText("전체");
+    m_maxAmt->setRange(0, 2'000'000'000); m_maxAmt->setSpecialValueText("전체");
     m_minAmt->setValue(0); m_maxAmt->setValue(0);
     m_minAmt->setButtonSymbols(QAbstractSpinBox::NoButtons);
     m_maxAmt->setButtonSymbols(QAbstractSpinBox::NoButtons);
 
     auto* searchBtn = new QPushButton("검색", this);
     auto* resetBtn  = new QPushButton("초기화", this);
+    searchBtn->setFixedSize(80, 34);
+    resetBtn->setFixedSize(80, 34);
+
+    static const QString kGrayBtn =
+        "QPushButton{background:#6B7280;color:#FFFFFF;border:none;border-radius:6px;"
+        "font-size:9pt;font-weight:600;}"
+        "QPushButton:hover{background:#4B5563;}"
+        "QPushButton:pressed{background:#374151;}";
+    searchBtn->setStyleSheet(kGrayBtn);
+    resetBtn->setStyleSheet(kGrayBtn);
 
     m_accountCombo->setMinimumWidth(130);
     m_keywordEdit->setMinimumWidth(130);
@@ -220,11 +255,12 @@ void TransactionWidget::setupUi() {
     m_minAmt->setMinimumWidth(130);
     m_maxAmt->setMinimumWidth(130);
 
-    filterBox->setMinimumHeight(120);
+    filterBox->setMinimumHeight(110);
 
     // row 1 아이템: 레이블 위 + 위젯 아래 구조의 래퍼
     auto makeItem = [this](const QString& labelText, QWidget* w) -> QWidget* {
         auto* c = new QWidget(this);
+        c->setStyleSheet("background: transparent;");
         auto* v = new QVBoxLayout(c);
         v->setContentsMargins(0, 0, 0, 0);
         v->setSpacing(2);
@@ -233,18 +269,18 @@ void TransactionWidget::setupUi() {
         return c;
     };
 
-    // row 0: 계좌, 키워드, 카테고리 (6 컬럼)
-    grid->addWidget(new QLabel("계좌:"),     0, 0); grid->addWidget(m_accountCombo,  0, 1);
-    grid->addWidget(new QLabel("키워드:"),   0, 2); grid->addWidget(m_keywordEdit,    0, 3);
-    grid->addWidget(new QLabel("카테고리:"), 0, 4); grid->addWidget(m_categoryFilter, 0, 5);
+    // row 0: 계좌(2col), 키워드(2col), 카테고리(2col) — makeItem으로 row1과 구조 통일
+    grid->addWidget(makeItem("계좌:",     m_accountCombo),  0, 0, 1, 2);
+    grid->addWidget(makeItem("키워드:",   m_keywordEdit),   0, 2, 1, 2);
+    grid->addWidget(makeItem("카테고리:", m_categoryFilter),0, 4, 1, 2);
 
-    // row 1: 시작일, 종료일, 최소금액, 최대금액, 검색/초기화 (6 컬럼)
+    // row 1: 시작일, 종료일, 최소금액, 최대금액, 검색/초기화
     grid->addWidget(makeItem("시작일:",    makeCalendarPicker(m_startDate, this)), 1, 0);
     grid->addWidget(makeItem("종료일:",    makeCalendarPicker(m_endDate,   this)), 1, 1);
     grid->addWidget(makeItem("최소 금액:", m_minAmt),                              1, 2);
     grid->addWidget(makeItem("최대 금액:", m_maxAmt),                              1, 3);
-    grid->addWidget(searchBtn,                                                      1, 4, Qt::AlignBottom);
-    grid->addWidget(resetBtn,                                                       1, 5, Qt::AlignBottom);
+    grid->addWidget(searchBtn, 1, 4, Qt::AlignBottom | Qt::AlignHCenter);
+    grid->addWidget(resetBtn,  1, 5, Qt::AlignBottom | Qt::AlignHCenter);
 
     // 6 컬럼 균등 확장
     for (int c = 0; c < 6; ++c) grid->setColumnStretch(c, 1);
@@ -267,6 +303,15 @@ void TransactionWidget::setupUi() {
     m_view->verticalHeader()->hide();
     m_view->setAttribute(Qt::WA_MacShowFocusRect, false);
     m_view->setStyle(QStyleFactory::create("Fusion"));
+    m_view->horizontalHeader()->setStyleSheet(
+        "QHeaderView::section {"
+        "  background: #F3F4F6;"
+        "  color: #6B7280;"
+        "  font-size: 8.5pt; font-weight: 600;"
+        "  border: none;"
+        "  border-bottom: 1px solid #E5E7EB;"
+        "  padding: 6px 8px;"
+        "}");
     m_view->setStyleSheet(
         "QTableView {"
         "  outline: 0;"
@@ -290,9 +335,32 @@ void TransactionWidget::setupUi() {
     root->addWidget(m_view);
 
     auto* btns      = new QHBoxLayout;
-    auto* editBtn   = new QPushButton("수정",        this);
-    auto* deleteBtn = new QPushButton("삭제",        this);
+    btns->setContentsMargins(0, 4, 0, 0);
+    btns->setSpacing(8);
+    auto* editBtn   = new QPushButton("수정",         this);
+    auto* deleteBtn = new QPushButton("삭제",         this);
     auto* exportBtn = new QPushButton("CSV 내보내기", this);
+    editBtn->setFixedHeight(36);
+    deleteBtn->setFixedHeight(36);
+    exportBtn->setFixedHeight(36);
+    editBtn->setMinimumWidth(80);
+    deleteBtn->setMinimumWidth(80);
+    exportBtn->setMinimumWidth(120);
+    editBtn->setStyleSheet(
+        "QPushButton{background:#F0F9FF;color:#0284C7;border:1px solid #BAE6FD;"
+        "border-radius:7px;font-weight:600;}"
+        "QPushButton:hover{background:#0284C7;color:#FFFFFF;border-color:#0284C7;}"
+        "QPushButton:pressed{background:#0369A1;}");
+    deleteBtn->setStyleSheet(
+        "QPushButton{background:#FEF2F2;color:#DC2626;border:1px solid #FECACA;"
+        "border-radius:7px;font-weight:600;}"
+        "QPushButton:hover{background:#DC2626;color:#FFFFFF;border-color:#DC2626;}"
+        "QPushButton:pressed{background:#B91C1C;}");
+    exportBtn->setStyleSheet(
+        "QPushButton{background:#F0FDF4;color:#059669;border:1px solid #A7F3D0;"
+        "border-radius:7px;font-weight:600;}"
+        "QPushButton:hover{background:#059669;color:#FFFFFF;border-color:#059669;}"
+        "QPushButton:pressed{background:#047857;}");
     btns->addWidget(editBtn);
     btns->addWidget(deleteBtn);
     btns->addStretch();
@@ -314,6 +382,8 @@ void TransactionWidget::setupUi() {
     connect(exportBtn, &QPushButton::clicked, this, &TransactionWidget::onExportCsv);
     connect(m_accountCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &TransactionWidget::onAccountChanged);
+    connect(m_categoryFilter, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &TransactionWidget::onSearch);
 }
 
 void TransactionWidget::refresh() {
@@ -342,7 +412,7 @@ void TransactionWidget::onSearch() {
     m_view->setColumnWidth(2, 120);
     m_view->setColumnWidth(3, 65);
     m_view->setColumnWidth(4, 90);
-    m_view->setColumnWidth(5, 130);
+    m_view->setColumnWidth(5, 160);
 }
 
 void TransactionWidget::onAccountChanged(int) {

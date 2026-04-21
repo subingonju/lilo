@@ -4,6 +4,7 @@
 #include <QPushButton>
 #include <QGroupBox>
 #include <QLabel>
+#include <QEvent>
 
 class BudgetWidget : public QWidget {
     Q_OBJECT
@@ -15,6 +16,9 @@ private slots:
     void onAdd();
     void onEdit();
     void onDelete();
+
+protected:
+    void changeEvent(QEvent* e) override;
 
 private:
     void setupUi();

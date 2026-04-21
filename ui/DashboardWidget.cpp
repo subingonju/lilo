@@ -61,27 +61,54 @@ DashboardWidget::DashboardWidget(int userId, QWidget* parent)
     refresh();
 }
 
-// QGroupBox 공통 스타일 — 타이틀이 테두리 위에 떠 있도록 margin-top 확보
-static QString groupBoxStyle(const QString& titleBg = "#F8FAFC") {
-    return QString(
+// QGroupBox 공통 스타일 — 제목이 박스 안 상단 중앙에 위치
+static QString groupBoxStyle(const QString& = "#F8FAFC") {
+    return
         "QGroupBox {"
         "  border: 1px solid #E2E8F0;"
         "  border-radius: 10px;"
-        "  margin-top: 20px;"
+        "  margin-top: 0;"
+        "  padding-top: 30px;"
         "  background: #FFFFFF;"
         "}"
         "QGroupBox::title {"
-        "  subcontrol-origin: margin;"
-        "  subcontrol-position: top left;"
-        "  left: 14px;"
-        "  top: 0px;"
-        "  padding: 2px 8px;"
-        "  color: #374151;"
-        "  font-size: 9pt;"
-        "  font-weight: 700;"
-        "  background: %1;"
-        "  border-radius: 4px;"
-        "}").arg(titleBg);
+        "  subcontrol-origin: padding;"
+        "  subcontrol-position: top center;"
+        "  top: 6px;"
+        "  padding: 2px 12px;"
+        "  color: #111827;"
+        "  font-size: 10.5pt; font-weight: 800;"
+        "  background: transparent;"
+        "}";
+}
+
+// 차트 전용 QGroupBox 스타일 — 박스 안 상단 중앙
+static QString chartGroupBoxStyle() {
+    return
+        "QGroupBox {"
+        "  border: 1px solid #E2E8F0;"
+        "  border-radius: 14px;"
+        "  margin-top: 0;"
+        "  padding-top: 34px;"
+        "  background: #FFFFFF;"
+        "}"
+        "QGroupBox::title {"
+        "  subcontrol-origin: padding;"
+        "  subcontrol-position: top center;"
+        "  top: 6px;"
+        "  padding: 3px 14px;"
+        "  color: #111827;"
+        "  font-size: 10.5pt; font-weight: 800;"
+        "  background: transparent;"
+        "}";
+}
+
+static void addShadow(QWidget* w) {
+    auto* eff = new QGraphicsDropShadowEffect(w);
+    eff->setBlurRadius(20);
+    eff->setColor(QColor(0, 0, 0, 22));
+    eff->setOffset(0, 3);
+    w->setGraphicsEffect(eff);
 }
 
 void DashboardWidget::setupUi() {
@@ -110,6 +137,7 @@ void DashboardWidget::setupUi() {
     recentLay->setSpacing(0);
 
     m_recentTxTable = new QTableWidget(0, 4, recentGroup);
+    m_recentTxTable->setStyle(QStyleFactory::create("Fusion"));
     m_recentTxTable->setHorizontalHeaderLabels({"날짜", "계좌명", "유형", "금액"});
     m_recentTxTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Fixed);
     m_recentTxTable->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
@@ -154,21 +182,65 @@ void DashboardWidget::setupUi() {
     // ── 3. 차트 ──────────────────────────────────────────────
     setupCharts();
 
+    // 막대 차트 박스
     auto* barGroup = new QGroupBox("월별 수입 / 지출", this);
-    barGroup->setStyleSheet(groupBoxStyle());
+    barGroup->setStyleSheet(chartGroupBoxStyle());
     barGroup->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     auto* barLay = new QVBoxLayout(barGroup);
-    barLay->setContentsMargins(10, 10, 10, 10);
+    barLay->setContentsMargins(12, 8, 12, 12);
     barLay->setSpacing(0);
     barLay->addWidget(m_barChartView);
+    addShadow(barGroup);
 
+    // 파이 차트 박스
     auto* pieGroup = new QGroupBox("이번 달 카테고리별 지출", this);
-    pieGroup->setStyleSheet(groupBoxStyle());
+    pieGroup->setStyleSheet(chartGroupBoxStyle());
     pieGroup->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     auto* pieLay = new QVBoxLayout(pieGroup);
-    pieLay->setContentsMargins(10, 10, 10, 10);
+    pieLay->setContentsMargins(12, 8, 12, 12);
     pieLay->setSpacing(0);
-    pieLay->addWidget(m_pieChartView);
+    addShadow(pieGroup);
+
+    // 도넛 중앙 텍스트 오버레이
+    auto* pieWrapper = new QWidget(pieGroup);
+    auto* wrapStack  = new QStackedLayout(pieWrapper);
+    wrapStack->setStackingMode(QStackedLayout::StackAll);
+    wrapStack->addWidget(m_pieChartView);  // 하단 레이어
+
+    auto* centerOverlay = new QWidget(pieWrapper);
+    centerOverlay->setAttribute(Qt::WA_TransparentForMouseEvents);
+    centerOverlay->setStyleSheet("background:transparent;");
+    auto* overLay = new QVBoxLayout(centerOverlay);
+    overLay->setAlignment(Qt::AlignCenter);
+    overLay->setContentsMargins(0, 0, 0, 0);
+    overLay->setSpacing(4);
+    m_pieCenterTopLbl = new QLabel("—", centerOverlay);
+    m_pieCenterTopLbl->setAlignment(Qt::AlignCenter);
+    m_pieCenterTopLbl->setStyleSheet(
+        "background:transparent; color:#6B7280; font-size:8pt; font-weight:600;");
+    m_pieCenterBotLbl = new QLabel("—", centerOverlay);
+    m_pieCenterBotLbl->setAlignment(Qt::AlignCenter);
+    m_pieCenterBotLbl->setStyleSheet(
+        "background:transparent; color:#111827; font-size:11pt; font-weight:800;");
+    overLay->addWidget(m_pieCenterTopLbl);
+    overLay->addWidget(m_pieCenterBotLbl);
+    wrapStack->addWidget(centerOverlay);  // 상단 레이어
+
+    // 우측 커스텀 범례
+    m_pieLegendWidget = new QWidget(pieGroup);
+    m_pieLegendWidget->setFixedWidth(100);
+    m_pieLegendWidget->setStyleSheet("background:transparent;");
+    m_pieLegendLayout = new QVBoxLayout(m_pieLegendWidget);
+    m_pieLegendLayout->setAlignment(Qt::AlignVCenter | Qt::AlignLeft);
+    m_pieLegendLayout->setContentsMargins(4, 0, 0, 0);
+    m_pieLegendLayout->setSpacing(8);
+
+    auto* pieInnerLay = new QHBoxLayout;
+    pieInnerLay->setContentsMargins(0, 0, 0, 0);
+    pieInnerLay->setSpacing(0);
+    pieInnerLay->addWidget(pieWrapper, 1);
+    pieInnerLay->addWidget(m_pieLegendWidget);
+    pieLay->addLayout(pieInnerLay);
 
     auto* chartRow = new QHBoxLayout;
     chartRow->setSpacing(14);
@@ -234,7 +306,7 @@ void DashboardWidget::updateRecentTransactions() {
         JOIN accounts a ON t.account_id = a.id
         WHERE a.user_id = :uid
         ORDER BY t.created_at DESC
-        LIMIT 5
+        LIMIT 10
     )");
     q.bindValue(":uid", m_userId);
 
@@ -365,9 +437,9 @@ void DashboardWidget::updateBarChart() {
 
     auto* incomeSet  = new QBarSet("수입");
     auto* expenseSet = new QBarSet("지출");
-    incomeSet->setColor(QColor("#059669"));
+    incomeSet->setColor(QColor("#6EE7B7"));
     incomeSet->setBorderColor(Qt::transparent);
-    expenseSet->setColor(QColor("#EF4444"));
+    expenseSet->setColor(QColor("#FCA5A5"));
     expenseSet->setBorderColor(Qt::transparent);
     QStringList months;
 
@@ -402,7 +474,7 @@ void DashboardWidget::updateBarChart() {
     auto* series = new QBarSeries;
     series->append(incomeSet);
     series->append(expenseSet);
-    series->setBarWidth(0.6);
+    series->setBarWidth(0.5);
 
     auto* chart = new QChart;
     chart->addSeries(series);
@@ -413,9 +485,10 @@ void DashboardWidget::updateBarChart() {
 
     auto* legend = chart->legend();
     legend->setAlignment(Qt::AlignTop);
-    legend->setFont(QFont("맑은 고딕", 8));
+    legend->setFont(QFont("맑은 고딕", 8, QFont::DemiBold));
     legend->setLabelColor(QColor("#374151"));
     legend->setMarkerShape(QLegend::MarkerShapeRectangle);
+    legend->setBackgroundVisible(false);
 
     auto* axisX = new QBarCategoryAxis;
     axisX->append(months);
@@ -433,7 +506,8 @@ void DashboardWidget::updateBarChart() {
     axisY->setLabelFormat("%.0f");
     axisY->setLabelsFont(QFont("맑은 고딕", 8));
     axisY->setLabelsColor(QColor("#6B7280"));
-    axisY->setGridLineColor(QColor("#F3F4F6"));
+    axisY->setGridLineColor(QColor("#F1F5F9"));
+    axisY->setMinorGridLineVisible(false);
     axisY->setLinePenColor(Qt::transparent);
     axisY->setTitleText("(단위: 만원)");
     axisY->setTitleFont(QFont("맑은 고딕", 7));
@@ -446,8 +520,8 @@ void DashboardWidget::updateBarChart() {
 
 void DashboardWidget::updatePieChart() {
     static const QString kColors[] = {
-        "#3B82F6", "#059669", "#F59E0B", "#EF4444",
-        "#8B5CF6", "#06B6D4", "#F97316", "#EC4899"
+        "#60A5FA", "#34D399", "#FBBF24", "#F87171",
+        "#A78BFA", "#22D3EE", "#FB923C", "#F472B6"
     };
 
     auto db = DatabaseManager::instance().database();
@@ -460,24 +534,75 @@ void DashboardWidget::updatePieChart() {
         GROUP BY t.category ORDER BY 2 DESC)");
     q.bindValue(":uid", m_userId);
 
-    auto* series = new QPieSeries;
-    series->setHoleSize(0.38);
-    series->setPieSize(0.78);
+    // 데이터 수집
+    struct CatRow { QString cat; double amt; };
+    QList<CatRow> rows;
+    double totalExp = 0;
     if (q.exec()) {
-        while (q.next())
-            series->append(q.value(0).toString(), q.value(1).toDouble());
+        while (q.next()) {
+            double amt = q.value(1).toDouble();
+            rows.append({ q.value(0).toString(), amt });
+            totalExp += amt;
+        }
     }
-    if (series->count() == 0) series->append("데이터 없음", 1);
+
+    // 중앙 레이블 업데이트
+    if (rows.isEmpty()) {
+        if (m_pieCenterTopLbl) m_pieCenterTopLbl->setText("지출 없음");
+        if (m_pieCenterBotLbl) m_pieCenterBotLbl->setText("₩0");
+    } else {
+        if (m_pieCenterTopLbl) m_pieCenterTopLbl->setText(rows.first().cat);
+        if (m_pieCenterBotLbl) m_pieCenterBotLbl->setText(AccountModel::formatKRW(totalExp));
+    }
+
+    // 커스텀 범례 재구성
+    if (m_pieLegendLayout) {
+        while (QLayoutItem* item = m_pieLegendLayout->takeAt(0)) {
+            if (item->widget()) item->widget()->deleteLater();
+            delete item;
+        }
+        int li = 0;
+        for (const auto& r : rows) {
+            auto* legRow = new QWidget(m_pieLegendWidget);
+            legRow->setStyleSheet("background:transparent;");
+            auto* legH = new QHBoxLayout(legRow);
+            legH->setContentsMargins(0, 0, 0, 0);
+            legH->setSpacing(6);
+
+            auto* dot = new QLabel("●", legRow);
+            dot->setStyleSheet(QString(
+                "color:%1; font-size:9pt; background:transparent;").arg(kColors[li % 8]));
+            dot->setFixedWidth(14);
+
+            auto* lbl = new QLabel(r.cat.left(5), legRow);
+            lbl->setStyleSheet("color:#374151; font-size:8pt; background:transparent;");
+            lbl->setToolTip(r.cat);
+
+            legH->addWidget(dot);
+            legH->addWidget(lbl, 1);
+            m_pieLegendLayout->addWidget(legRow);
+            ++li;
+        }
+        m_pieLegendLayout->addStretch();
+    }
+
+    // 시리즈 구성
+    auto* series = new QPieSeries;
+    series->setHoleSize(0.52);
+    series->setPieSize(0.82);
+    if (rows.isEmpty()) {
+        series->append("데이터 없음", 1);
+    } else {
+        for (const auto& r : rows)
+            series->append(r.cat, r.amt);
+    }
 
     int i = 0;
     for (auto* slice : series->slices()) {
         slice->setColor(QColor(kColors[i % 8]));
         slice->setBorderColor(QColor("#FFFFFF"));
         slice->setBorderWidth(2);
-        slice->setLabelVisible(slice->percentage() > 0.05);
-        slice->setLabelPosition(QPieSlice::LabelOutside);
-        slice->setLabelFont(QFont("맑은 고딕", 9, QFont::Bold));
-        slice->setLabelColor(QColor("#111827"));
+        slice->setLabelVisible(false);  // 커스텀 범례 사용
         ++i;
     }
 
@@ -486,13 +611,8 @@ void DashboardWidget::updatePieChart() {
     chart->setAnimationOptions(QChart::SeriesAnimations);
     chart->setBackgroundVisible(false);
     chart->setPlotAreaBackgroundVisible(false);
-    chart->setMargins(QMargins(8, 8, 8, 8));
-
-    auto* legend = chart->legend();
-    legend->setAlignment(Qt::AlignBottom);
-    legend->setFont(QFont("맑은 고딕", 9));
-    legend->setLabelColor(QColor("#111827"));
-    legend->setMarkerShape(QLegend::MarkerShapeCircle);
+    chart->setMargins(QMargins(4, 4, 4, 4));
+    chart->legend()->hide();
 
     static_cast<QChartView*>(m_pieChartView)->setChart(chart);
 }
