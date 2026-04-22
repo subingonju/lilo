@@ -1,5 +1,6 @@
 #include "TransferManager.h"
 #include "DatabaseManager.h"
+#include "AuthManager.h"
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QSqlDatabase>
@@ -62,6 +63,9 @@ bool TransferManager::transfer(int fromId, int toId, double amount, const QStrin
     if (!q.exec()) { db.rollback(); return false; }
 
     db.commit();
+    int uid = AuthManager::instance().currentUserId();
+    DatabaseManager::logAudit(db, uid, "INSERT", "transfers", q.lastInsertId().toInt(),
+        QString("from=%1, to=%2, amount=%3").arg(fromId).arg(toId).arg(amount));
     emit transferCompleted(fromId, toId);
     return true;
 }

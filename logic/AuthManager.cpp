@@ -30,6 +30,8 @@ bool AuthManager::login(const QString& username, const QString& password) {
 
     m_userId   = q.value(0).toInt();
     m_username = username.trimmed();
+    DatabaseManager::logAudit(DatabaseManager::instance().database(), m_userId,
+        "LOGIN", "users", m_userId, QString("username=%1").arg(m_username));
     emit loggedIn(m_userId, m_username);
     return true;
 }
@@ -44,6 +46,9 @@ bool AuthManager::registerUser(const QString& username, const QString& password)
         qWarning() << "registerUser failed:" << q.lastError().text();
         return false;
     }
+    int newUserId = q.lastInsertId().toInt();
+    DatabaseManager::logAudit(DatabaseManager::instance().database(), newUserId,
+        "REGISTER", "users", newUserId, QString("username=%1").arg(username.trimmed()));
     return true;
 }
 

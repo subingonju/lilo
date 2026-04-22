@@ -40,10 +40,10 @@ MainWindow::MainWindow(int userId, const QString& username, QWidget* parent)
     setupMenuBar();
     setupStatusBar();
 
-    // 환율: NAM 한 번만 생성, 5분마다 갱신
+    // 환율: NAM 한 번만 생성, 하루 1회 갱신
     m_nam = new QNetworkAccessManager(this);
     m_rateTimer = new QTimer(this);
-    m_rateTimer->setInterval(5 * 60 * 1000);
+    m_rateTimer->setInterval(24 * 60 * 60 * 1000);
     connect(m_rateTimer, &QTimer::timeout, this, &MainWindow::fetchExchangeRates);
     m_rateTimer->start();
     fetchExchangeRates();
@@ -273,9 +273,12 @@ void MainWindow::fetchExchangeRates() {
         if (m_sideEurLabel) m_sideEurLabel->setText(fmt(eur));
         if (m_sideCnyLabel) m_sideCnyLabel->setText(fmt(cny));
 
-        QString timeStr = QDateTime::currentDateTime().toString("HH:mm 기준");
-        if (m_sideRateTimeLbl) m_sideRateTimeLbl->setText(timeStr);
-        qDebug() << "[환율] 업데이트 완료 —" << timeStr;
+        qint64 unixTs = doc.object()["time_last_update_unix"].toInteger();
+        QString dateStr = unixTs > 0
+            ? QDateTime::fromSecsSinceEpoch(unixTs).toString("yyyy.MM.dd 기준")
+            : QDate::currentDate().toString("yyyy.MM.dd 기준");
+        if (m_sideRateTimeLbl) m_sideRateTimeLbl->setText(dateStr);
+        qDebug() << "[환율] 업데이트 완료 —" << dateStr;
     });
 }
 
@@ -285,8 +288,7 @@ void MainWindow::setupMenuBar() {
     auto* logoutAct = fileMenu->addAction("로그아웃");
     connect(logoutAct, &QAction::triggered, this, &MainWindow::onLogout);
 
-    auto* exitAct = fileMenu->addAction("종료");
-    connect(exitAct, &QAction::triggered, qApp, &QApplication::quit);
+
 
     // 새로 고침 — 파일과 도움말 사이
     auto* refreshAct = new QAction("새로 고침(&R)", this);

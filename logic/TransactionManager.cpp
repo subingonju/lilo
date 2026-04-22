@@ -1,5 +1,6 @@
 #include "TransactionManager.h"
 #include "DatabaseManager.h"
+#include "AuthManager.h"
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QSqlDatabase>
@@ -42,6 +43,9 @@ bool TransactionManager::deposit(int accountId, double amount, const QString& ca
     }
 
     db.commit();
+    int uid = AuthManager::instance().currentUserId();
+    DatabaseManager::logAudit(db, uid, "INSERT", "transactions", q.lastInsertId().toInt(),
+        QString("type=입금, amount=%1, category=%2").arg(amount).arg(category));
     emit transactionsChanged(accountId);
     return true;
 }
@@ -83,6 +87,9 @@ bool TransactionManager::withdraw(int accountId, double amount, const QString& c
     }
 
     db.commit();
+    int uid = AuthManager::instance().currentUserId();
+    DatabaseManager::logAudit(db, uid, "INSERT", "transactions", q.lastInsertId().toInt(),
+        QString("type=출금, amount=%1, category=%2").arg(amount).arg(category));
     emit transactionsChanged(accountId);
     return true;
 }
@@ -114,6 +121,9 @@ bool TransactionManager::updateTransaction(int txId, double newAmount,
     }
 
     db.commit();
+    int uid = AuthManager::instance().currentUserId();
+    DatabaseManager::logAudit(db, uid, "UPDATE", "transactions", txId,
+        QString("amount=%1, category=%2").arg(newAmount).arg(category));
     emit transactionsChanged(accountId);
     return true;
 }
@@ -139,6 +149,8 @@ bool TransactionManager::deleteTransaction(int txId) {
     }
 
     db.commit();
+    int uid = AuthManager::instance().currentUserId();
+    DatabaseManager::logAudit(db, uid, "DELETE", "transactions", txId);
     emit transactionsChanged(accountId);
     return true;
 }

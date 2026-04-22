@@ -1,5 +1,6 @@
 #include "AccountManager.h"
 #include "DatabaseManager.h"
+#include "AuthManager.h"
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QDebug>
@@ -26,6 +27,10 @@ bool AccountManager::createAccount(int userId, const QString& name, const QStrin
         qWarning() << "createAccount failed:" << q.lastError().text();
         return false;
     }
+    int newId = q.lastInsertId().toInt();
+    int uid = AuthManager::instance().currentUserId();
+    DatabaseManager::logAudit(DatabaseManager::instance().database(), uid,
+        "INSERT", "accounts", newId, QString("name=%1, type=%2").arg(name.trimmed(), type));
     emit accountsChanged();
     return true;
 }
@@ -43,6 +48,9 @@ bool AccountManager::updateAccount(int id, const QString& name, const QString& t
         qWarning() << "updateAccount failed:" << q.lastError().text();
         return false;
     }
+    int uid = AuthManager::instance().currentUserId();
+    DatabaseManager::logAudit(DatabaseManager::instance().database(), uid,
+        "UPDATE", "accounts", id, QString("name=%1, type=%2").arg(name.trimmed(), type));
     emit accountsChanged();
     return true;
 }
@@ -71,6 +79,8 @@ bool AccountManager::deleteAccount(int id) {
     }
 
     db.commit();
+    int uid = AuthManager::instance().currentUserId();
+    DatabaseManager::logAudit(db, uid, "DELETE", "accounts", id);
     emit accountsChanged();
     return true;
 }

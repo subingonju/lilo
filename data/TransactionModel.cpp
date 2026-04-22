@@ -23,8 +23,8 @@ QVariant TransactionModel::data(const QModelIndex& index, int role) const {
 
     if (role == Qt::ForegroundRole) {
         if (index.column() == 3 || index.column() == 5) {
-            if (t.type == "입금") return QColor("#059669");
-            if (t.type == "출금") return QColor("#DC2626");
+            if (t.type == "입금") return QColor(0x05, 0x96, 0x69);
+            if (t.type == "출금") return QColor(0xDC, 0x26, 0x26);
         }
         return {};
     }

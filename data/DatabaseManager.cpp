@@ -1,7 +1,7 @@
 #include "DatabaseManager.h"
 #include <QSqlQuery>
 #include <QSqlError>
-#include <QStandardPaths>
+#include <QCoreApplication>
 #include <QFileInfo>
 #include <QDir>
 #include <QDebug>
@@ -16,7 +16,7 @@ DatabaseManager::DatabaseManager(QObject* parent) : QObject(parent) {}
 bool DatabaseManager::initialize(const QString& path) {
     m_db = QSqlDatabase::addDatabase("QSQLITE");
     QString dbPath = path.isEmpty()
-        ? QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/account_manager.db"
+        ? QCoreApplication::applicationDirPath() + "/account_manager.db"
         : path;
     QDir().mkpath(QFileInfo(dbPath).absolutePath());
     m_db.setDatabaseName(dbPath);
@@ -108,4 +108,20 @@ bool DatabaseManager::createTables() {
     )");
 
     return true;
+}
+
+void DatabaseManager::logAudit(const QSqlDatabase& db, int userId,
+                                const QString& action, const QString& tableName,
+                                int recordId, const QString& detail)
+{
+    QSqlQuery q(db);
+    q.prepare("INSERT INTO audit_log (user_id, action, table_name, record_id, detail) "
+              "VALUES (:uid, :act, :tbl, :rid, :det)");
+    q.bindValue(":uid", userId);
+    q.bindValue(":act", action);
+    q.bindValue(":tbl", tableName);
+    q.bindValue(":rid", recordId);
+    q.bindValue(":det", detail);
+    if (!q.exec())
+        qWarning() << "audit_log insert failed:" << q.lastError().text();
 }
