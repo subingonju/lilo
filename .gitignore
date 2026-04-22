@@ -13,6 +13,8 @@ Makefile
 *.user
 *.vcxproj.user
 .vs/
-*.db
+*.dbW
 *.db-wal
 *.db-shm
+.claude
+CLAUDE.md

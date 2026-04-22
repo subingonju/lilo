@@ -5,6 +5,7 @@
 #include <QPushButton>
 #include <QList>
 #include <QTimer>
+#include <QNetworkAccessManager>
 
 class DashboardWidget;
 class AccountWidget;
@@ -45,7 +46,8 @@ private:
     QLabel* m_sideCnyLabel    = nullptr;
     QLabel* m_sideRateTimeLbl = nullptr;
 
-    QTimer* m_rateTimer = nullptr;
+    QTimer*                m_rateTimer = nullptr;
+    QNetworkAccessManager* m_nam       = nullptr;
 
     QLabel* m_statusUser;
 };

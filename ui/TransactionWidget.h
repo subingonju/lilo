@@ -38,4 +38,5 @@ private:
     QSpinBox* m_minAmt;
     QSpinBox* m_maxAmt;
     QComboBox*      m_categoryFilter;
+    QComboBox*      m_typeFilter;
 };

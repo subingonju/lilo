@@ -581,7 +581,10 @@ void AccountWidget::showAmountDialog(int accountId, bool isDeposit) {
     amtEdit->setValidator(new QRegularExpressionValidator(QRegularExpression(R"(\d{1,15})"), dlg));
 
     auto* catBox = new QComboBox(dlg);
-    catBox->addItems({"급여", "식비", "교통", "쇼핑", "의료", "여가", "이체", "기타"});
+    if (isDeposit)
+        catBox->addItems({"급여", "부수입", "용돈", "금융수익(이자/배당)", "이체", "기타"});
+    else
+        catBox->addItems({"식비", "교통", "쇼핑", "주거/통신", "의료/건강", "여가", "교육", "이체", "기타"});
     auto* descEdit = new QLineEdit(dlg);
     descEdit->setPlaceholderText("거래 설명 (선택사항)");
 

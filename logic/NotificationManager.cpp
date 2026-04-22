@@ -84,48 +84,51 @@ void NotificationManager::notify(const QString& title, const QString& message,
                                   const QColor& accentColor) {
     if (!m_mainWindow) return;
 
-    // 앱 내부 자식 위젯으로 생성
     auto* toast = new QFrame(m_mainWindow);
     toast->setAttribute(Qt::WA_StyledBackground, true);
     toast->setAttribute(Qt::WA_DeleteOnClose);
-    toast->setFixedWidth(320);
+    toast->setFixedWidth(300);
     toast->setStyleSheet(QString(
-        "QFrame {"
-        "  background-color: rgba(15, 23, 42, 230);"
-        "  border: none;"
-        "  border-left: 5px solid %1;"
-        "  border-radius: 12px;"
+        "QFrame#toast {"
+        "  background-color: #FFFFFF;"
+        "  border: 1px solid #E5E7EB;"
+        "  border-left: 4px solid %1;"
+        "  border-radius: 10px;"
         "}"
-        "QLabel { background: transparent; }").arg(accentColor.name()));
+        "QLabel { background: transparent; color: #111827; }").arg(accentColor.name()));
+    toast->setObjectName("toast");
 
     auto* hl = new QHBoxLayout(toast);
-    hl->setContentsMargins(14, 14, 14, 14);
-    hl->setSpacing(12);
+    hl->setContentsMargins(12, 12, 14, 12);
+    hl->setSpacing(10);
 
-    QString iconChar = title.contains("초과") ? "X" : "!";
+    // 아이콘: 컬러 원형 배지
+    QString iconChar = title.contains("초과") ? "✕" : "!";
     auto* iconLbl = new QLabel(iconChar, toast);
     iconLbl->setAlignment(Qt::AlignCenter);
-    iconLbl->setFixedSize(28, 28);
+    iconLbl->setFixedSize(26, 26);
     iconLbl->setStyleSheet(QString(
-        "color:#FFFFFF; font-size:13px; font-weight:900;"
-        "background:%1; border-radius:14px;").arg(accentColor.name()));
+        "color:#FFFFFF; font-size:11px; font-weight:900;"
+        "background:%1; border-radius:13px;").arg(accentColor.name()));
 
     auto* contentLay = new QVBoxLayout;
-    contentLay->setSpacing(4);
+    contentLay->setSpacing(2);
 
     auto* titleLbl = new QLabel(title, toast);
-    titleLbl->setStyleSheet("color:#F1F5F9; font-size:12px; font-weight:bold;");
+    titleLbl->setStyleSheet(QString(
+        "color:%1; font-size:11px; font-weight:700;").arg(accentColor.name()));
 
     auto* msgLbl = new QLabel(message, toast);
-    msgLbl->setStyleSheet("color:#94A3B8; font-size:11px;");
+    msgLbl->setStyleSheet("color:#6B7280; font-size:10px;");
     msgLbl->setWordWrap(true);
-    msgLbl->setFixedWidth(240);
+    msgLbl->setMaximumWidth(220);
 
     contentLay->addWidget(titleLbl);
     contentLay->addWidget(msgLbl);
 
     hl->addWidget(iconLbl, 0, Qt::AlignTop);
     hl->addLayout(contentLay);
+    hl->addStretch();
 
     toast->adjustSize();
     positionToast(toast);

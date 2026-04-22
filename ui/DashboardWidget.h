@@ -4,6 +4,7 @@
 #include <QGroupBox>
 #include <QTableWidget>
 #include <QVBoxLayout>
+#include <QGridLayout>
 
 class DashboardWidget : public QWidget {
     Q_OBJECT
@@ -37,5 +38,5 @@ private:
     QLabel*      m_pieCenterTopLbl = nullptr;
     QLabel*      m_pieCenterBotLbl = nullptr;
     QWidget*     m_pieLegendWidget = nullptr;
-    QVBoxLayout* m_pieLegendLayout = nullptr;
+    QGridLayout* m_pieLegendLayout = nullptr;
 };

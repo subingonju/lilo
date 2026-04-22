@@ -22,6 +22,7 @@
 #include <QNetworkAccessManager>
 #include <QNetworkRequest>
 #include <QNetworkReply>
+#include <QDebug>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QUrl>
@@ -30,7 +31,7 @@
 MainWindow::MainWindow(int userId, const QString& username, QWidget* parent)
     : QMainWindow(parent), m_userId(userId), m_username(username)
 {
-    setWindowTitle("계정 관리자");
+    setWindowTitle("VEDA");
     setMinimumSize(1100, 700);
 
     NotificationManager::instance().initialize(this);
@@ -39,7 +40,8 @@ MainWindow::MainWindow(int userId, const QString& username, QWidget* parent)
     setupMenuBar();
     setupStatusBar();
 
-    // 환율 자동 갱신 타이머 (5분)
+    // 환율: NAM 한 번만 생성, 5분마다 갱신
+    m_nam = new QNetworkAccessManager(this);
     m_rateTimer = new QTimer(this);
     m_rateTimer->setInterval(5 * 60 * 1000);
     connect(m_rateTimer, &QTimer::timeout, this, &MainWindow::fetchExchangeRates);
@@ -226,13 +228,14 @@ void MainWindow::setActivePage(int index) {
 
 void MainWindow::fetchExchangeRates() {
     if (m_sideRateTimeLbl) m_sideRateTimeLbl->setText("불러오는 중...");
+    qDebug() << "[환율] 요청 시작" << QDateTime::currentDateTime().toString("HH:mm:ss");
 
-    auto* nam   = new QNetworkAccessManager(this);
-    auto* reply = nam->get(QNetworkRequest(QUrl("https://open.er-api.com/v6/latest/KRW")));
+    auto* reply = m_nam->get(QNetworkRequest(QUrl("https://open.er-api.com/v6/latest/KRW")));
 
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
         reply->deleteLater();
         if (reply->error() != QNetworkReply::NoError) {
+            qDebug() << "[환율] 네트워크 오류:" << reply->errorString();
             if (m_sideUsdLabel) m_sideUsdLabel->setText("오류");
             if (m_sideJpyLabel) m_sideJpyLabel->setText("오류");
             if (m_sideEurLabel) m_sideEurLabel->setText("오류");
@@ -245,20 +248,34 @@ void MainWindow::fetchExchangeRates() {
         auto doc   = QJsonDocument::fromJson(reply->readAll());
         auto rates = doc.object()["rates"].toObject();
 
+        if (rates.isEmpty()) {
+            qDebug() << "[환율] 응답 파싱 실패 — rates 없음";
+            if (m_sideRateTimeLbl) m_sideRateTimeLbl->setText("⚠ 파싱 오류");
+            return;
+        }
+
         auto krwPer = [&](const QString& code) -> double {
             double r = rates[code].toDouble();
             return r > 0 ? 1.0 / r : 0.0;
         };
         auto fmt = [](double v) { return AccountModel::formatKRW(qRound(v)); };
 
-        if (m_sideUsdLabel) m_sideUsdLabel->setText(fmt(krwPer("USD")));
-        if (m_sideJpyLabel) m_sideJpyLabel->setText(fmt(krwPer("JPY") * 100));
-        if (m_sideEurLabel) m_sideEurLabel->setText(fmt(krwPer("EUR")));
-        if (m_sideCnyLabel) m_sideCnyLabel->setText(fmt(krwPer("CNY")));
+        double usd = krwPer("USD");
+        double jpy = krwPer("JPY") * 100;
+        double eur = krwPer("EUR");
+        double cny = krwPer("CNY");
 
-        if (m_sideRateTimeLbl)
-            m_sideRateTimeLbl->setText(
-                QDateTime::currentDateTime().toString("HH:mm 기준"));
+        qDebug() << "[환율] USD=" << usd << "JPY(100)=" << jpy
+                 << "EUR=" << eur << "CNY=" << cny;
+
+        if (m_sideUsdLabel) m_sideUsdLabel->setText(fmt(usd));
+        if (m_sideJpyLabel) m_sideJpyLabel->setText(fmt(jpy));
+        if (m_sideEurLabel) m_sideEurLabel->setText(fmt(eur));
+        if (m_sideCnyLabel) m_sideCnyLabel->setText(fmt(cny));
+
+        QString timeStr = QDateTime::currentDateTime().toString("HH:mm 기준");
+        if (m_sideRateTimeLbl) m_sideRateTimeLbl->setText(timeStr);
+        qDebug() << "[환율] 업데이트 완료 —" << timeStr;
     });
 }
 

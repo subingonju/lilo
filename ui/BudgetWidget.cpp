@@ -367,7 +367,7 @@ void BudgetWidget::onAdd() {
     form->setContentsMargins(24, 24, 24, 24);
 
     auto* catBox = new QComboBox(dlg);
-    catBox->addItems({"급여", "식비", "교통", "쇼핑", "의료", "여가", "이체", "기타"});
+    catBox->addItems({"식비", "교통", "쇼핑", "주거/통신", "의료/건강", "여가", "교육", "이체", "기타"});
     auto* limitSpin = new QDoubleSpinBox(dlg);
     limitSpin->setRange(1, 1e12);
     limitSpin->setDecimals(0);

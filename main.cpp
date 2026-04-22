@@ -1,4 +1,5 @@
 #include <QApplication>
+#include <QIcon>
 #include <QMessageBox>
 #include "DatabaseManager.h"
 #include "AuthManager.h"
@@ -9,6 +10,7 @@ int main(int argc, char* argv[]) {
     QApplication app(argc, argv);
     app.setApplicationName("AccountManager");
     app.setOrganizationName("CourseProject");
+    app.setWindowIcon(QIcon(":/images/bank.ico"));
 
     if (!DatabaseManager::instance().initialize()) {
         QMessageBox::critical(nullptr, "Fatal Error", "Cannot open database.");

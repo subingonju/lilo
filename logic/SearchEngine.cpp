@@ -25,6 +25,7 @@ QList<Transaction> SearchEngine::search(const SearchCriteria& c) {
     if (c.minAmount >= 0)   sql += " AND t.amount >= :mina";
     if (c.maxAmount >= 0)   sql += " AND t.amount <= :maxa";
     if (!c.category.isEmpty() && c.category != "All") sql += " AND t.category = :cat";
+    if (!c.transactionType.isEmpty()) sql += " AND t.type = :ttype";
     sql += " ORDER BY t.created_at DESC";
 
     QSqlQuery q(DatabaseManager::instance().database());
@@ -41,6 +42,7 @@ QList<Transaction> SearchEngine::search(const SearchCriteria& c) {
     if (c.minAmount >= 0)     q.bindValue(":mina", c.minAmount);
     if (c.maxAmount >= 0)     q.bindValue(":maxa", c.maxAmount);
     if (!c.category.isEmpty() && c.category != "All") q.bindValue(":cat", c.category);
+    if (!c.transactionType.isEmpty()) q.bindValue(":ttype", c.transactionType);
 
     QList<Transaction> results;
     if (!q.exec()) {

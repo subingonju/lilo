@@ -94,5 +94,18 @@ bool DatabaseManager::createTables() {
             return false;
         }
     }
+
+    // 카테고리 데이터 정합성 보정: 잘못된 유형-카테고리 조합을 '기타'로 교정
+    q.exec(R"(
+        UPDATE transactions SET category='기타'
+        WHERE type='입금'
+          AND category NOT IN ('급여','부수입','용돈','금융수익(이자/배당)','이체','기타')
+    )");
+    q.exec(R"(
+        UPDATE transactions SET category='기타'
+        WHERE type='출금'
+          AND category NOT IN ('식비','교통','쇼핑','주거/통신','의료/건강','여가','교육','이체','기타')
+    )");
+
     return true;
 }

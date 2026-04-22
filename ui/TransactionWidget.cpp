@@ -188,7 +188,7 @@ void TransactionWidget::setupUi() {
     auto* filterBox = new QGroupBox("검색 / 필터", this);
     auto* grid = new QGridLayout(filterBox);
     grid->setContentsMargins(10, 14, 10, 10);
-    grid->setHorizontalSpacing(10);
+    grid->setHorizontalSpacing(2);
     grid->setVerticalSpacing(8);
 
     static const QString kComboStyle =
@@ -211,11 +211,17 @@ void TransactionWidget::setupUi() {
 
     m_accountCombo   = new QComboBox(this);
     m_accountCombo->setStyleSheet(kComboStyle);
-    m_keywordEdit    = new QLineEdit(this);
-    m_keywordEdit->setPlaceholderText("키워드...");
+    m_typeFilter = new QComboBox(this);
+    m_typeFilter->setStyleSheet(kComboStyle);
+    m_typeFilter->addItems({"전체", "입금", "출금"});
     m_categoryFilter = new QComboBox(this);
     m_categoryFilter->setStyleSheet(kComboStyle);
-    m_categoryFilter->addItems({"전체", "급여", "식비", "교통", "쇼핑", "의료", "여가", "이체", "기타"});
+    m_categoryFilter->addItems({"전체",
+        "급여", "부수입", "용돈", "금융수익(이자/배당)",
+        "식비", "교통", "쇼핑", "주거/통신", "의료/건강", "여가", "교육",
+        "이체", "기타"});
+    m_keywordEdit    = new QLineEdit(this);
+    m_keywordEdit->setPlaceholderText("키워드...");
 
     m_startDate = new QDateEdit(QDate::currentDate().addMonths(-1), this);
     m_endDate   = new QDateEdit(QDate::currentDate(), this);
@@ -247,9 +253,10 @@ void TransactionWidget::setupUi() {
     searchBtn->setStyleSheet(kGrayBtn);
     resetBtn->setStyleSheet(kGrayBtn);
 
-    m_accountCombo->setMinimumWidth(130);
-    m_keywordEdit->setMinimumWidth(130);
+    m_accountCombo->setMinimumWidth(90);
+    m_typeFilter->setMinimumWidth(100);
     m_categoryFilter->setMinimumWidth(130);
+    m_keywordEdit->setMinimumWidth(130);
     m_startDate->setMinimumWidth(130);
     m_endDate->setMinimumWidth(130);
     m_minAmt->setMinimumWidth(130);
@@ -269,10 +276,11 @@ void TransactionWidget::setupUi() {
         return c;
     };
 
-    // row 0: 계좌(2col), 키워드(2col), 카테고리(2col) — makeItem으로 row1과 구조 통일
-    grid->addWidget(makeItem("계좌:",     m_accountCombo),  0, 0, 1, 2);
-    grid->addWidget(makeItem("키워드:",   m_keywordEdit),   0, 2, 1, 2);
-    grid->addWidget(makeItem("카테고리:", m_categoryFilter),0, 4, 1, 2);
+    // row 0: 계좌(1), 유형(1), 카테고리(2), 키워드(2)
+    grid->addWidget(makeItem("계좌:",     m_accountCombo),  0, 0, 1, 1);
+    grid->addWidget(makeItem("유형:",     m_typeFilter),    0, 1, 1, 1);
+    grid->addWidget(makeItem("카테고리:", m_categoryFilter),0, 2, 1, 2);
+    grid->addWidget(makeItem("키워드:",   m_keywordEdit),   0, 4, 1, 2);
 
     // row 1: 시작일, 종료일, 최소금액, 최대금액, 검색/초기화
     grid->addWidget(makeItem("시작일:",    makeCalendarPicker(m_startDate, this)), 1, 0);
@@ -367,9 +375,29 @@ void TransactionWidget::setupUi() {
     btns->addWidget(exportBtn);
     root->addLayout(btns);
 
+    // 날짜 역전 방지: 시작일 변경 시 종료일이 더 이전이면 종료일을 시작일로 맞춤
+    connect(m_startDate, &QDateEdit::dateChanged, this, [this](const QDate& d) {
+        if (d > m_endDate->date()) {
+            m_endDate->blockSignals(true);
+            m_endDate->setDate(d);
+            m_endDate->blockSignals(false);
+        }
+        onSearch();
+    });
+    // 종료일 변경 시 시작일이 더 이후면 시작일을 종료일로 맞춤
+    connect(m_endDate, &QDateEdit::dateChanged, this, [this](const QDate& d) {
+        if (d < m_startDate->date()) {
+            m_startDate->blockSignals(true);
+            m_startDate->setDate(d);
+            m_startDate->blockSignals(false);
+        }
+        onSearch();
+    });
+
     connect(searchBtn, &QPushButton::clicked, this, &TransactionWidget::onSearch);
     connect(resetBtn,  &QPushButton::clicked, this, [this]() {
         m_keywordEdit->clear();
+        m_typeFilter->setCurrentIndex(0);
         m_categoryFilter->setCurrentIndex(0);
         m_startDate->setDate(QDate::currentDate().addMonths(-1));
         m_endDate->setDate(QDate::currentDate());
@@ -382,6 +410,8 @@ void TransactionWidget::setupUi() {
     connect(exportBtn, &QPushButton::clicked, this, &TransactionWidget::onExportCsv);
     connect(m_accountCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &TransactionWidget::onAccountChanged);
+    connect(m_typeFilter, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &TransactionWidget::onSearch);
     connect(m_categoryFilter, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &TransactionWidget::onSearch);
 }
@@ -400,8 +430,8 @@ void TransactionWidget::onSearch() {
     c.endDate   = m_endDate->date().toString("yyyy-MM-dd");
     if (m_minAmt->value() > 0) c.minAmount = m_minAmt->value();
     if (m_maxAmt->value() > 0) c.maxAmount = m_maxAmt->value();
-    // "전체" means no category filter
-    c.category  = (m_categoryFilter->currentText() == "전체") ? "All" : m_categoryFilter->currentText();
+    c.category        = (m_categoryFilter->currentText() == "전체") ? "All" : m_categoryFilter->currentText();
+    c.transactionType = (m_typeFilter->currentText()     == "전체") ? ""    : m_typeFilter->currentText();
 
     m_model->setTransactions(SearchEngine::instance().search(c));
     auto* hdr = m_view->horizontalHeader();
@@ -449,7 +479,10 @@ void TransactionWidget::onEdit() {
     form->setContentsMargins(24, 24, 24, 24);
 
     auto* catBox = new QComboBox(dlg);
-    catBox->addItems({"급여", "식비", "교통", "쇼핑", "의료", "여가", "이체", "기타"});
+    if (t.type == "입금")
+        catBox->addItems({"급여", "부수입", "용돈", "금융수익(이자/배당)", "이체", "기타"});
+    else
+        catBox->addItems({"식비", "교통", "쇼핑", "주거/통신", "의료/건강", "여가", "교육", "이체", "기타"});
     catBox->setCurrentText(t.category);
 
     auto* descEdit = new QLineEdit(t.description, dlg);

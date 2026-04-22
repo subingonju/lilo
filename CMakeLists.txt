@@ -51,10 +51,15 @@ set(HEADERS
     ui/SettingsDialog.h
 )
 
+if(WIN32)
+    set(WIN_RC app.rc)
+endif()
+
 qt_add_executable(AccountManager
     ${SOURCES}
     ${HEADERS}
     resources/resources.qrc
+    ${WIN_RC}
 )
 
 target_link_libraries(AccountManager PRIVATE

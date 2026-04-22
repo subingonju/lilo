@@ -145,7 +145,7 @@ void DashboardWidget::setupUi() {
     m_recentTxTable->setColumnWidth(0, 140);
     m_recentTxTable->setColumnWidth(3, 120);
     m_recentTxTable->horizontalHeader()->setFont(QFont("맑은 고딕", 8, QFont::DemiBold));
-    m_recentTxTable->horizontalHeader()->setDefaultAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+    m_recentTxTable->horizontalHeader()->setDefaultAlignment(Qt::AlignCenter);
     m_recentTxTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
     m_recentTxTable->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_recentTxTable->verticalHeader()->hide();
@@ -224,23 +224,24 @@ void DashboardWidget::setupUi() {
         "background:transparent; color:#111827; font-size:11pt; font-weight:800;");
     overLay->addWidget(m_pieCenterTopLbl);
     overLay->addWidget(m_pieCenterBotLbl);
-    wrapStack->addWidget(centerOverlay);  // 상단 레이어
+    wrapStack->addWidget(centerOverlay);  // 중앙 텍스트 레이어
 
-    // 우측 커스텀 범례
+    // 범례: pieWrapper 우측에 독립 위젯으로 배치 (겹침 없음)
     m_pieLegendWidget = new QWidget(pieGroup);
-    m_pieLegendWidget->setFixedWidth(100);
     m_pieLegendWidget->setStyleSheet("background:transparent;");
-    m_pieLegendLayout = new QVBoxLayout(m_pieLegendWidget);
-    m_pieLegendLayout->setAlignment(Qt::AlignVCenter | Qt::AlignLeft);
+    m_pieLegendWidget->setFixedWidth(130);
+    m_pieLegendLayout = new QGridLayout(m_pieLegendWidget);
     m_pieLegendLayout->setContentsMargins(4, 0, 0, 0);
-    m_pieLegendLayout->setSpacing(8);
+    m_pieLegendLayout->setHorizontalSpacing(6);
+    m_pieLegendLayout->setVerticalSpacing(6);
 
+    // 차트(좌) + 범례(우) — QHBoxLayout으로 나란히
     auto* pieInnerLay = new QHBoxLayout;
     pieInnerLay->setContentsMargins(0, 0, 0, 0);
     pieInnerLay->setSpacing(0);
     pieInnerLay->addWidget(pieWrapper, 1);
-    pieInnerLay->addWidget(m_pieLegendWidget);
-    pieLay->addLayout(pieInnerLay);
+    pieInnerLay->addWidget(m_pieLegendWidget, 0, Qt::AlignVCenter);
+    pieLay->addLayout(pieInnerLay, 1);
 
     auto* chartRow = new QHBoxLayout;
     chartRow->setSpacing(14);
@@ -468,7 +469,7 @@ void DashboardWidget::updateBarChart() {
         else if (norm <= 2.0) tickInterval = 2.0  * mag;
         else if (norm <= 5.0) tickInterval = 5.0  * mag;
         else                  tickInterval = 10.0 * mag;
-        niceMax = tickInterval * qCeil(maxVal / tickInterval);
+        niceMax = tickInterval * qCeil(maxVal / tickInterval) * 1.1;
     }
 
     auto* series = new QBarSeries;
@@ -555,7 +556,7 @@ void DashboardWidget::updatePieChart() {
         if (m_pieCenterBotLbl) m_pieCenterBotLbl->setText(AccountModel::formatKRW(totalExp));
     }
 
-    // 커스텀 범례 재구성
+    // 커스텀 범례 재구성 (2열 그리드)
     if (m_pieLegendLayout) {
         while (QLayoutItem* item = m_pieLegendLayout->takeAt(0)) {
             if (item->widget()) item->widget()->deleteLater();
@@ -563,27 +564,33 @@ void DashboardWidget::updatePieChart() {
         }
         int li = 0;
         for (const auto& r : rows) {
+            double pct = (totalExp > 0) ? (r.amt / totalExp * 100.0) : 0.0;
+
+            int gridRow = li;
+            int gridCol = 0;
+
             auto* legRow = new QWidget(m_pieLegendWidget);
             legRow->setStyleSheet("background:transparent;");
             auto* legH = new QHBoxLayout(legRow);
             legH->setContentsMargins(0, 0, 0, 0);
-            legH->setSpacing(6);
+            legH->setSpacing(4);
 
             auto* dot = new QLabel("●", legRow);
             dot->setStyleSheet(QString(
-                "color:%1; font-size:9pt; background:transparent;").arg(kColors[li % 8]));
-            dot->setFixedWidth(14);
+                "color:%1; font-size:8pt; background:transparent;").arg(kColors[li % 8]));
+            dot->setFixedWidth(12);
 
-            auto* lbl = new QLabel(r.cat.left(5), legRow);
+            auto* lbl = new QLabel(
+                QString("%1 %2%").arg(r.cat.left(6)).arg(pct, 0, 'f', 1),
+                legRow);
             lbl->setStyleSheet("color:#374151; font-size:8pt; background:transparent;");
             lbl->setToolTip(r.cat);
 
             legH->addWidget(dot);
-            legH->addWidget(lbl, 1);
-            m_pieLegendLayout->addWidget(legRow);
+            legH->addWidget(lbl);
+            m_pieLegendLayout->addWidget(legRow, gridRow, gridCol);
             ++li;
         }
-        m_pieLegendLayout->addStretch();
     }
 
     // 시리즈 구성
